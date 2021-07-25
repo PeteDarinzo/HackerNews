@@ -17,7 +17,9 @@ async function login(evt) {
   const username = $("#login-username").val();
   const password = $("#login-password").val();
 
-  // User.login retrieves user info from API and returns User instance
+  // attempt log in, if the API returns an error, the credentials are wrong
+  try {
+    // User.login retrieves user info from API and returns User instance
   // which we'll make the globally-available, logged-in user.
   currentUser = await User.login(username, password);
 
@@ -25,6 +27,14 @@ async function login(evt) {
 
   saveUserCredentialsInLocalStorage();
   updateUIOnUserLogin();
+  } catch(e) {
+    if(e.response) {
+      alert("Invalid username or password, please try again, or create a new account if you are a new user.")
+    } else if(e.request) {
+      alert("Network Error");
+    }
+  }
+  
 }
 
 $loginForm.on("submit", login);
@@ -39,13 +49,20 @@ async function signup(evt) {
   const username = $("#signup-username").val();
   const password = $("#signup-password").val();
 
-  // User.signup retrieves user info from API and returns User instance
+  try {
+    // User.signup retrieves user info from API and returns User instance
   // which we'll make the globally-available, logged-in user.
   currentUser = await User.signup(username, password, name);
 
   saveUserCredentialsInLocalStorage();
   updateUIOnUserLogin();
-
+  } catch(e) {
+    if(e.response) {
+      alert("Sorry, that username is taken.")
+    } else if(e.request) {
+      alert("Network Error.")
+    }
+  }
   $signupForm.trigger("reset");
 }
 
@@ -110,9 +127,44 @@ function saveUserCredentialsInLocalStorage() {
 function updateUIOnUserLogin() {
   console.debug("updateUIOnUserLogin");
 
+  hidePageComponents();
+
+  getAndShowStoriesOnStart();
+
   $allStoriesList.show();
 
   updateNavOnLogin();
 }
 
 
+/**
+ * Allows a user to update name, (not username)
+ * and password
+ * Contains two password inputs for validation
+ * Header text provides greeting with current account name
+ */
+async function updateAccountCredentials(evt) {
+  evt.preventDefault();
+
+  const $newName = $("#update-name").val();
+  const $newPassword = $("#update-password").val();
+  const $verPassword = $("#verify-password").val();
+
+  if(!$newPassword && !$verPassword) {
+    currentUser.updateCredentials(currentUser.loginToken, $newName);
+    alert("Account updated!")
+  } else if($newPassword === $verPassword) {
+    currentUser.updateCredentials(currentUser.loginToken, $newName, $newPassword);
+    alert("Account updated!")
+  } else {
+    alert("Passwords do not match! Please re-enter new password.")
+  }
+
+  $accountGreeting.text(`Good day, ${currentUser.name}!`);
+
+  $('#update-name').val('');
+  $("#update-password").val('');
+  $("#verify-password").val('');
+}
+
+$accForm.on('submit', updateAccountCredentials);

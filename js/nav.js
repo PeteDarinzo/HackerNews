@@ -80,3 +80,14 @@ function navUserStoriesClick() {
 }
 
 $navUserList.on("click", navUserStoriesClick);
+
+
+/** Change view to show user profile */
+
+function navUserProfileClick() {
+  hidePageComponents();
+  $accountGreeting.text(`Good day, ${currentUser.name}!`);
+  $('#acc-form').show();
+}
+
+$navUserProfile.on("click", navUserProfileClick);

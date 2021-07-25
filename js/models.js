@@ -24,8 +24,8 @@ class Story {
   /** Parses hostname out of URL and returns it. */
 
   getHostName() {
-    // UNIMPLEMENTED: complete this function!
-    return "hostname.com";
+    const _url = new URL(`${this.url}`);
+    return _url.hostname;
   }
 
 }
@@ -51,8 +51,7 @@ class StoryList {
   static async getStories() {
     // Note presence of `static` keyword: this indicates that getStories is
     //  **not** an instance method. Rather, it is a method that is called on the
-    //  class directly. Why doesn't it make sense for getStories to be an
-    //  instance method?
+    //  class directly. 
 
     // query the /stories endpoint (no auth required)
     const response = await axios({
@@ -76,7 +75,6 @@ class StoryList {
 
   async addStory(user, story) {
 
-    // make POST request to the API
     const res = await axios({
       url: `${BASE_URL}/stories`,
       data: {
@@ -99,14 +97,14 @@ class StoryList {
    * - 
    * Returns message from API of successful deletion
    */
-  async deleteStory(id) {
+  async deleteStory(user, id) {
 
     this.stories = this.stories.filter((s) => s.storyId !== id);
 
     const res = await axios({
       url: `${BASE_URL}/stories/${id}`,
       data: {
-        token: currentUser.loginToken,
+        token: user.loginToken,
       },
       method: 'DELETE'
     });
@@ -152,6 +150,8 @@ class User {
     this.loginToken = token;
   }
 
+  
+
 
   /** "Favorite" a story
    * Send favorite request to API
@@ -167,8 +167,6 @@ class User {
       method: "POST"
     });
 
-    console.log(res.data.story);
-
     const resTwo = await axios({
       url: `${BASE_URL}/stories/${storyId}`,
       method: "GET"
@@ -177,32 +175,15 @@ class User {
     this.favorites.push(new Story(resTwo.data.story));
   }
 
+
   /**
-   * get the users favorite stories
+   * Get a users favorite stories
+   * Note:
    * PARAMS adds to query string
    * DATA fills in form data
    */
 
-  async clearFavorites() {
-    for (let fav of this.favorites) {
-      const res = await axios({
-        url: `${BASE_URL}/users/${currentUser.username}/favorites/${fav.storyId}`,
-        data: { token: currentUser.loginToken },
-        method: "DELETE"
-      });
-
-      console.log(res.data.message);
-
-      this.favorites = [];
-    }
-  }
-
-
-  /**
-   * Get a users favorite stories
-   * 
-   */
-  async getFavorites() {
+  async getFavoriteStories() {
     const res = await axios({
       url: `${BASE_URL}/users/${currentUser.username}`,
       params: { token: currentUser.loginToken },
@@ -234,7 +215,6 @@ class User {
       method: "DELETE"
     });
 
-    console.log(res.data.message);
   }
 
   /** Return Boolean if sotry is in the favorites list
@@ -355,6 +335,46 @@ class User {
     } catch (err) {
       console.error("loginViaStoredCredentials failed", err);
       return null;
+    }
+  }
+
+  async updateCredentials(token, name, password) {
+
+    // if name is not being changed,
+    // make the request with the current name
+    // otherwise update current name, then make request
+    if(!name) {
+      name = this.name;
+    } else {
+      this.name = name;
+    }
+
+    // if user is changing password,
+    // make PATCH request with the new password
+    if(password) {
+      await axios({
+        url: `${BASE_URL}/users/${this.username}`,
+        data: {
+          token, 
+          user: {
+            name,
+            password
+          }
+        },
+        method: "PATCH"
+        });
+    } else {
+      // if user is only changing name, exclude password
+      await axios({
+        url: `${BASE_URL}/users/${this.username}`,
+        data: {
+          token, 
+          user: {
+            name
+          }
+        },
+        method: "PATCH"
+        });
     }
   }
 

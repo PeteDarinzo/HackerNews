@@ -16,14 +16,13 @@ async function getAndShowStoriesOnStart() {
  * A render method to render HTML for an individual Story instance
  * - story: an instance of Story
  *
- * Returns the markup for the story.
+ * Returns the markup for the story, 
+ * depending on if it for the main page, favorites page, or user-submitted stories
  */
 
 function generateStoryMarkup(story) {
-  // console.debug("generateStoryMarkup", story);
 
   const hostName = story.getHostName();
-
 
   return $(`
       <li id="${story.storyId}">
@@ -38,7 +37,6 @@ function generateStoryMarkup(story) {
 }
 
 function generateUserStoryMarkup(story) {
-  // console.debug("generateStoryMarkup", story);
 
   const hostName = story.getHostName();
 
@@ -72,35 +70,8 @@ function generateFavStoryMarkup(story) {
 `);
 }
 
-async function putUserStoriesOnPage() {
-  console.debug("putUserStoriesOnPage");
 
-  $userStoriesList.empty();
 
-  const stories = await currentUser.getUserStories();
-
-  for(let story of stories) {
-    const $story = generateUserStoryMarkup(story);
-    $userStoriesList.append($story); 
-  }
-
-  $userStoriesList.show();
-}
-
-async function putFavoritesOnPage() {
-  console.debug("putFavoritesOnPage");
-
-  $favStoriesList.empty();
-
-  const favs = await currentUser.getFavorites();
-
-  for(let fav of favs) {
-    const $story = generateFavStoryMarkup(fav);
-    $favStoriesList.append($story);
-  }
-
-  $favStoriesList.show();
-}
 
 
 /** Gets list of stories from server, generates their HTML, and puts on page. */
@@ -117,6 +88,38 @@ function putStoriesOnPage() {
   }
 
   $allStoriesList.show();
+}
+
+
+async function putUserStoriesOnPage() {
+  console.debug("putUserStoriesOnPage");
+
+  $userStoriesList.empty();
+
+  const stories = await currentUser.getUserStories();
+
+  for(let story of stories) {
+    const $story = generateUserStoryMarkup(story);
+    $userStoriesList.append($story); 
+  }
+
+  $userStoriesList.show();
+}
+
+
+async function putFavoritesOnPage() {
+  console.debug("putFavoritesOnPage");
+
+  $favStoriesList.empty();
+
+  const favs = await currentUser.getFavoriteStories();
+
+  for(let fav of favs) {
+    const $story = generateFavStoryMarkup(fav);
+    $favStoriesList.append($story);
+  }
+
+  $favStoriesList.show();
 }
 
 
@@ -140,24 +143,14 @@ async function submitStory(evt) {
 
   await storyList.addStory(currentUser, story);
 
-  putStoriesOnPage();
-
   $("#submit-title").val('');
   $("#submit-author").val('');
   $("#submit-url").val('');
-  
-  $submitForm.hide();
-
 }
 
 $submitForm.on("submit", submitStory);
 
-async function favoriteStory(evt) {
 
-  console.debug("favoriteStory", evt);
-
-  currentUser.addFavorite();
-}
 
 
 /**
@@ -167,32 +160,53 @@ async function favoriteStory(evt) {
  * https://www.html.am/html-codes/character-codes/html-star-code.cfm
  */
 
-$body.on("click", ".star", (evt) => {
-  const $button = $(evt.target);
-
-  const $story = $(evt.target.closest("LI"));
-  const $storyId = $story.attr("id");
-
-  // toggle favorite star
-  if($button.hasClass("favorite")) {
-    $button.removeClass("favorite")
-    $button.html("&#9734");
-    currentUser.removeFavorite($storyId);
+async function toggleFavorite(evt) {
+  
+  if(currentUser === undefined) {
+    alert("Please log in to start liking stories.");
   } else {
-    $button.addClass("favorite");
-    $button.html("&#9733");
-    currentUser.addFavorite($storyId);
+    const $button = $(evt.target);
+
+    const $story = $(evt.target.closest("LI"));
+    const $storyId = $story.attr("id");
+  
+    // toggle favorite star
+    if($button.hasClass("favorite")) {
+      $button.removeClass("favorite")
+      $button.html("&#9734");
+      currentUser.removeFavorite($storyId);
+    } else {
+      $button.addClass("favorite");
+      $button.html("&#9733");
+      currentUser.addFavorite($storyId);
+    }
   }
-});
+
+}
+
+// favorite toggle click event handler
+$body.on("click", ".star", toggleFavorite);
 
 
-/** Handle delete button click on the user submitted story list */
 
-$body.on("click", ".delete", (evt) => {
+/**
+ * Handle story deletion (only for user submitted stories)
+ */
+
+async function deleteUserStory(evt) {
+
+  evt.preventDefault();
+
+  console.debug("deleteStory");
+
   const $button = $(evt.target);
-
   const $story = $($button.closest("LI"));
   const $storyId = $story.attr("id");
-  storyList.deleteStory($storyId); // delete story from storiesList, and the API
+
+  await storyList.deleteStory(currentUser, $storyId); // delete story from storiesList, and the API
+
   $story.remove(); // remove from the user story DOM
-});
+}
+
+// delete button click event handler
+$body.on("click", ".delete", deleteUserStory);

@@ -120,6 +120,28 @@
   </form>
   </section>
 
+  <!-- Account update form -->
+  <form action="#" id="acc-form" class="account-form hidden" method="post">
+    <h4 id="greeting"></h4>
+    <p>
+      Enter a new name or password, then click update account.
+    </p>
+    <div class="login-input">
+      <label for="update-name">username</label>
+      <input id="update-name">
+    </div>
+    <div class="login-input">
+      <label for="update-password">password</label>
+      <input id="update-password" type="password">
+    </div>
+    <div class="login-input">
+      <label for="verify-password">verify password</label>
+      <input id="verify-password" type="password">
+    </div>
+    <button type="submit">update account</button>
+    <hr>
+  </form>
+
   <!-- Library JS & our JS -->
   <script src="https://unpkg.com/jquery"></script>
   <script src="https://unpkg.com/axios/dist/axios.js"></script>
